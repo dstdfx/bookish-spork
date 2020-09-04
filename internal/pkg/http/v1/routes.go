@@ -12,7 +12,8 @@ func Routes(b *backend.Backend) http.Handler {
 	r := chi.NewRouter()
 
 	// GET /v1/get/<key>
-	r.Get("/get/{key}", getHandler(b))
+	r.With(RequireKeyName).
+		Get("/get/{key}", getHandler(b))
 
 	// POST /v1/set
 	r.Post("/set", setHandler(b))
@@ -21,26 +22,40 @@ func Routes(b *backend.Backend) http.Handler {
 	r.Get("/keys", keysHandler(b))
 
 	// DELETE /v1/remove/<key>
-	r.Delete("/delete/{key}", removeHandler(b))
+	r.With(RequireKeyName).
+		Delete("/delete/{key}", removeHandler(b))
 
 	// POST /v1/rpush
 	r.Post("/rpush", rpushHandler(b))
 
 	// GET /v1/lindex/<key>/<index>
-	r.Get("/lindex/{key}/{index}", lindexHandler(b))
+	r.With(RequireKeyName).
+		Get("/lindex/{key}/{index}", lindexHandler(b))
 
 	// POST /v1/hset
 	r.Post("/hset", hsetHandler(b))
 
 	// GET /v1/hget/<key>/<hkey>
-	r.Get("/hget/{key}/{hkey}", hgetHandler(b))
+	r.With(RequireKeyName).
+		Get("/hget/{key}/{hkey}", hgetHandler(b))
 
 	return r
 }
 
 func getHandler(b *backend.Backend) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusNotImplemented)
+		// Get key from router's context
+		key := GetKeyName(req.Context())
+
+		// Get value from cache
+		k, ok := b.Cache.Get(key)
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		JSON(w, map[string]interface{}{"value": k})
 	}
 }
 
