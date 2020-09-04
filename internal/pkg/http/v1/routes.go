@@ -1,10 +1,12 @@
 package v1
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/dstdfx/bookish-spork/internal/pkg/backend"
+	"github.com/dstdfx/bookish-spork/internal/pkg/qqcache"
 	"github.com/go-chi/chi"
 )
 
@@ -13,33 +15,40 @@ func Routes(b *backend.Backend) http.Handler {
 	r := chi.NewRouter()
 
 	// GET /v1/get/<key>
-	r.With(RequireKeyName).
+	r.
+		With(RequireKeyName).
 		Get("/get/{key}", getHandler(b))
 
 	// POST /v1/set
-	r.With(RequireSetParams).
+	r.
+		With(RequireSetParams).
 		Post("/set", setHandler(b))
 
 	// GET /v1/keys
 	r.Get("/keys", keysHandler(b))
 
 	// DELETE /v1/remove/<key>
-	r.With(RequireKeyName).
+	r.
+		With(RequireKeyName).
 		Delete("/remove/{key}", removeHandler(b))
 
 	// POST /v1/rpush
-	r.With(RequireRPushParams).
+	r.
+		With(RequireRPushParams).
 		Post("/rpush", rpushHandler(b))
 
 	// GET /v1/lindex/<key>/<index>
-	r.With(RequireKeyName).
+	r.
+		With(RequireKeyName).
+		With(RequireIndex).
 		Get("/lindex/{key}/{index}", lindexHandler(b))
 
 	// POST /v1/hset
 	r.Post("/hset", hsetHandler(b))
 
 	// GET /v1/hget/<key>/<hkey>
-	r.With(RequireKeyName).
+	r.
+		With(RequireKeyName).
 		Get("/hget/{key}/{hkey}", hgetHandler(b))
 
 	return r
@@ -110,7 +119,25 @@ func rpushHandler(b *backend.Backend) func(w http.ResponseWriter, req *http.Requ
 
 func lindexHandler(b *backend.Backend) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusNotImplemented)
+		// Get key from router's context
+		key := GetKeyName(req.Context())
+		index := GetIndex(req.Context())
+
+		v, err := b.Cache.LIndex(key, index)
+		if err != nil {
+			if errors.Is(err, qqcache.ErrNotFound) {
+				w.WriteHeader(http.StatusNotFound)
+			}
+			if errors.Is(err, qqcache.ErrWrongTypeIndex) {
+				w.WriteHeader(http.StatusBadRequest)
+				JSON(w, map[string]string{"error": err.Error()})
+			}
+
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		JSON(w, map[string]interface{}{"value": v})
 	}
 }
 

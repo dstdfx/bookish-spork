@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi"
 )
 
 const (
-	keyParam = "key"
+	keyParam   = "key"
+	indexParam = "index"
 )
 
 type ctxKey int
@@ -18,6 +20,7 @@ const (
 	ctxKeyName ctxKey = iota
 	ctxSetBody
 	ctxRPushBody
+	ctxIndex
 )
 
 // RequireKeyName middleware checks that 'key' parameter is set.
@@ -26,7 +29,7 @@ func RequireKeyName(next http.Handler) http.Handler {
 		key := chi.URLParam(r, keyParam)
 		if key == "" {
 			w.WriteHeader(http.StatusBadRequest)
-			JSON(w, "key is required")
+			JSON(w, map[string]string{"error": "key is required"})
 
 			return
 		}
@@ -41,6 +44,50 @@ func GetKeyName(ctx context.Context) string {
 	v, ok := ctx.Value(ctxKeyName).(string)
 	if !ok {
 		return ""
+	}
+
+	return v
+}
+
+// RequireIndex middleware checks that 'index' parameter is set.
+func RequireIndex(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		index := chi.URLParam(r, indexParam)
+		if index == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			JSON(w, map[string]string{"error": "index is required"})
+
+			return
+		}
+
+		// Validate index
+		v, err := strconv.Atoi(index)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			JSON(w, map[string]string{"error": "index is invalid"})
+
+			return
+		}
+
+		// FIXME: current implementation of lindex does not allow negative indexes
+		//       fix when available
+		if v < 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			JSON(w, map[string]string{"error": "index can't be negative"})
+
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), ctxIndex, index)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// GetIndex retrieves index value from context.
+func GetIndex(ctx context.Context) int {
+	v, ok := ctx.Value(ctxIndex).(int)
+	if !ok {
+		return 0
 	}
 
 	return v

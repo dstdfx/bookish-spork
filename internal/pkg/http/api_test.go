@@ -12,6 +12,7 @@ import (
 	"github.com/dstdfx/bookish-spork/internal/pkg/config"
 	v1 "github.com/dstdfx/bookish-spork/internal/pkg/http/v1"
 	"github.com/dstdfx/bookish-spork/internal/pkg/log"
+	"github.com/dstdfx/bookish-spork/internal/pkg/qqcache"
 	"github.com/dstdfx/bookish-spork/internal/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 )
@@ -393,4 +394,123 @@ func TestRPush_BadRequest(t *testing.T) {
 	router.ServeHTTP(w, r)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+// Tests for GET /v1/lindex/<key>/<index>
+
+func TestLindex_OK(t *testing.T) {
+	// Check acceptance test flag
+	if !testutils.IsAccTestEnabled(t) {
+		return
+	}
+
+	// Init global app configuration
+	testutils.InitTestConfig()
+
+	// Initialize logger
+	logger, err := log.InitLogger(log.InitLoggerOpts{
+		Debug:     config.Config.Log.Debug,
+		UseStdout: config.Config.Log.UseStdout,
+		File:      config.Config.Log.File,
+	})
+	assert.NoError(t, err)
+
+	// Prepare backend
+	b := backend.New(logger)
+	assert.NotEmpty(t, b)
+
+	// Set test value to cache
+	assert.NoError(t, b.Cache.RPush(testKey, testValue, 0))
+
+	// Setup handlers
+	router := InitAPIRouter(b)
+
+	// Test a request
+	w := httptest.NewRecorder()
+	r, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/v1/lindex/%s/%d", testKey, 0), nil)
+	assert.NoError(t, err)
+	router.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t,
+		testutils.RespToJSON(t,
+			map[string]string{"value": testValue},
+		), w.Body.String())
+}
+
+func TestLindex_BadRequest(t *testing.T) {
+	// Check acceptance test flag
+	if !testutils.IsAccTestEnabled(t) {
+		return
+	}
+
+	// Init global app configuration
+	testutils.InitTestConfig()
+
+	// Initialize logger
+	logger, err := log.InitLogger(log.InitLoggerOpts{
+		Debug:     config.Config.Log.Debug,
+		UseStdout: config.Config.Log.UseStdout,
+		File:      config.Config.Log.File,
+	})
+	assert.NoError(t, err)
+
+	// Prepare backend
+	b := backend.New(logger)
+	assert.NotEmpty(t, b)
+
+	// Set test value to cache
+	b.Cache.Set(testKey, testValue, 0)
+
+	// Setup handlers
+	router := InitAPIRouter(b)
+
+	// Test a request
+	w := httptest.NewRecorder()
+	r, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/v1/lindex/%s/%d", testKey, 1), nil)
+	assert.NoError(t, err)
+	router.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t,
+		testutils.RespToJSON(t,
+			map[string]string{"error": qqcache.ErrWrongTypeIndex.Error()},
+		), w.Body.String())
+}
+
+func TestLindex_BadIndex(t *testing.T) {
+	// Check acceptance test flag
+	if !testutils.IsAccTestEnabled(t) {
+		return
+	}
+
+	// Init global app configuration
+	testutils.InitTestConfig()
+
+	// Initialize logger
+	logger, err := log.InitLogger(log.InitLoggerOpts{
+		Debug:     config.Config.Log.Debug,
+		UseStdout: config.Config.Log.UseStdout,
+		File:      config.Config.Log.File,
+	})
+	assert.NoError(t, err)
+
+	// Prepare backend
+	b := backend.New(logger)
+	assert.NotEmpty(t, b)
+
+	// Setup handlers
+	router := InitAPIRouter(b)
+
+	// Test a request
+	w := httptest.NewRecorder()
+	r, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/v1/lindex/%s/%d", testKey, -1), nil)
+	assert.NoError(t, err)
+	router.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t,
+		testutils.RespToJSON(t,
+			map[string]string{"error": "index can't be negative"},
+		), w.Body.String())
 }
