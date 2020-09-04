@@ -16,6 +16,12 @@ var (
 	ErrNotFound       = errors.New("not value found by key")
 )
 
+// Opts represents the options to create new instance of Cache.
+type Opts struct {
+	// EvictionInterval is how often cache-cleaner will delete expired keys.
+	EvictionInterval time.Duration
+}
+
 // Cache represents cache container.
 type Cache struct {
 	mux              sync.RWMutex
@@ -26,15 +32,15 @@ type Cache struct {
 
 // New returns new instance of Cache.
 // If eviction interval is equal or less that 0 - default eviction will be used.
-func New(evictionInterval time.Duration) *Cache {
-	if evictionInterval <= 0 {
-		evictionInterval = defaultEvictionInterval
+func New(opts Opts) *Cache {
+	if opts.EvictionInterval <= 0 {
+		opts.EvictionInterval = defaultEvictionInterval
 	}
 
 	c := &Cache{
 		mux:              sync.RWMutex{},
 		data:             make(map[string]entity),
-		evictionInterval: evictionInterval,
+		evictionInterval: opts.EvictionInterval,
 		stopCleaner:      make(chan struct{}),
 	}
 

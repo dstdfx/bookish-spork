@@ -13,15 +13,19 @@ const (
 	testValue = "test-value"
 )
 
+func getCommonCacheOpts() Opts {
+	return Opts{EvictionInterval: 10 * time.Second}
+}
+
 func TestNew_DefaultEviction(t *testing.T) {
-	c := New(0)
+	c := New(Opts{EvictionInterval: 0})
 	defer c.Shutdown()
 	require.NotEmpty(t, c)
 	require.Equal(t, defaultEvictionInterval, c.evictionInterval)
 }
 
 func TestCache_Get_Set(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 
 	// Set test value to the cache
@@ -46,7 +50,7 @@ func TestCache_Get_Set(t *testing.T) {
 }
 
 func TestCache_Get_Set_PersistentKey(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 
 	// Set test value to the cache with 0 ttl
@@ -63,7 +67,7 @@ func TestCache_Get_Set_PersistentKey(t *testing.T) {
 }
 
 func TestCache_SetNil(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 
 	// Set nil value to the cache
@@ -76,7 +80,7 @@ func TestCache_SetNil(t *testing.T) {
 }
 
 func TestCache_Remove(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 
 	// Set test value to the cache
@@ -92,7 +96,7 @@ func TestCache_Remove(t *testing.T) {
 }
 
 func TestCache_Remove_NoKey(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 
 	// Remove value from the cache
@@ -100,7 +104,7 @@ func TestCache_Remove_NoKey(t *testing.T) {
 }
 
 func TestCache_Keys(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 	keysToSet := map[string]string{
 		"test-key-0": "test-value-0",
@@ -117,7 +121,7 @@ func TestCache_Keys(t *testing.T) {
 }
 
 func TestCache_RPush(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 	expected := []int{1, 2, 3, 4, 5}
 
@@ -145,7 +149,7 @@ func TestCache_RPush(t *testing.T) {
 }
 
 func TestCache_RPush_Expired(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 	expected := []int{3, 5}
 
@@ -185,7 +189,7 @@ func TestCache_RPush_Expired(t *testing.T) {
 }
 
 func TestCache_RPush_WrongValueType(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 
 	// Add string value
@@ -198,7 +202,7 @@ func TestCache_RPush_WrongValueType(t *testing.T) {
 }
 
 func TestCache_RPush_Nil(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 
 	// Add nil element to the list
@@ -214,7 +218,7 @@ func TestCache_RPush_Nil(t *testing.T) {
 }
 
 func TestCache_LIndex(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 
 	// Add list and values
@@ -243,7 +247,7 @@ func TestCache_LIndex(t *testing.T) {
 }
 
 func TestCache_LIndex_WrongValueType(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 
 	// Add string value
@@ -257,7 +261,7 @@ func TestCache_LIndex_WrongValueType(t *testing.T) {
 }
 
 func TestCache_LIndex_NotFound(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 
 	// Try to get index of the list
@@ -268,7 +272,7 @@ func TestCache_LIndex_NotFound(t *testing.T) {
 }
 
 func TestCache_HSet(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 
 	hmValue := map[string]interface{}{
@@ -293,7 +297,7 @@ func TestCache_HSet(t *testing.T) {
 }
 
 func TestCache_HSet_OverwriteHKeys(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 
 	hmValue := map[string]interface{}{
@@ -325,7 +329,7 @@ func TestCache_HSet_OverwriteHKeys(t *testing.T) {
 }
 
 func TestCache_HSet_WrongType(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 
 	c.Set(testKey, 0, 0)
@@ -337,7 +341,7 @@ func TestCache_HSet_WrongType(t *testing.T) {
 }
 
 func TestCache_HSet_NilHM(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 
 	err := c.HSet(testKey, nil, 0)
@@ -361,7 +365,7 @@ func TestCache_HSet_NilHM(t *testing.T) {
 }
 
 func TestCache_HGet(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 
 	hmValue := map[string]interface{}{
@@ -381,7 +385,7 @@ func TestCache_HGet(t *testing.T) {
 }
 
 func TestCache_HGet_NoKey(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 
 	got, err := c.HGet(testKey, "some")
@@ -391,7 +395,7 @@ func TestCache_HGet_NoKey(t *testing.T) {
 }
 
 func TestCache_HGet_NoHKey(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 
 	hmValue := map[string]interface{}{
@@ -410,7 +414,7 @@ func TestCache_HGet_NoHKey(t *testing.T) {
 }
 
 func TestCache_HGet_WrongType(t *testing.T) {
-	c := New(10 * time.Second)
+	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
 
 	// Set value
