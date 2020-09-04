@@ -14,12 +14,14 @@ const (
 
 func TestNew_DefaultEviction(t *testing.T) {
 	c := New(0)
+	defer c.Shutdown()
 	require.NotEmpty(t, c)
 	require.Equal(t, defaultEvictionInterval, c.evictionInterval)
 }
 
 func TestCache_Get_Set(t *testing.T) {
 	c := New(10 * time.Second)
+	defer c.Shutdown()
 
 	// Set test value to the cache
 	c.Set(testKey, testValue, time.Second)
@@ -44,6 +46,7 @@ func TestCache_Get_Set(t *testing.T) {
 
 func TestCache_Get_Set_PersistentKey(t *testing.T) {
 	c := New(10 * time.Second)
+	defer c.Shutdown()
 
 	// Set test value to the cache with 0 ttl
 	c.Set(testKey, testValue, 0)
@@ -60,6 +63,7 @@ func TestCache_Get_Set_PersistentKey(t *testing.T) {
 
 func TestCache_SetNil(t *testing.T) {
 	c := New(10 * time.Second)
+	defer c.Shutdown()
 
 	// Set nil value to the cache
 	c.Set(testKey, nil, time.Second)
@@ -72,6 +76,7 @@ func TestCache_SetNil(t *testing.T) {
 
 func TestCache_Remove(t *testing.T) {
 	c := New(10 * time.Second)
+	defer c.Shutdown()
 
 	// Set test value to the cache
 	c.Set(testKey, testValue, time.Second)
@@ -87,6 +92,7 @@ func TestCache_Remove(t *testing.T) {
 
 func TestCache_Remove_NoKey(t *testing.T) {
 	c := New(10 * time.Second)
+	defer c.Shutdown()
 	testKey := "test-key"
 
 	// Remove value from the cache
@@ -95,6 +101,7 @@ func TestCache_Remove_NoKey(t *testing.T) {
 
 func TestCache_Keys(t *testing.T) {
 	c := New(10 * time.Second)
+	defer c.Shutdown()
 	keysToSet := map[string]string{
 		"test-key-0": "test-value-0",
 		"test-key-1": "test-value-1",

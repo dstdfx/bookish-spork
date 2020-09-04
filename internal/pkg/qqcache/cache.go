@@ -7,13 +7,12 @@ import (
 
 const defaultEvictionInterval = 60 * time.Second
 
-// TODO: implement cache cleaner
-
 // Cache represents cache container.
 type Cache struct {
 	mux              sync.RWMutex
 	data             map[string]entity
 	evictionInterval time.Duration
+	stopCleaner      chan struct{}
 }
 
 // New returns new instance of Cache.
@@ -27,9 +26,18 @@ func New(evictionInterval time.Duration) *Cache {
 		mux:              sync.RWMutex{},
 		data:             make(map[string]entity),
 		evictionInterval: evictionInterval,
+		stopCleaner:      make(chan struct{}),
 	}
 
+	// Run cache cleaner
+	go c.cacheCleaner()
+
 	return c
+}
+
+// Shutdown stops cache cleaner.
+func (c *Cache) Shutdown() {
+	c.stopCleaner <- struct{}{}
 }
 
 // entity represents an object that stores by key in cache.
