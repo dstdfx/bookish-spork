@@ -9,12 +9,13 @@ import (
 )
 
 const (
-	testKey   = "test-key"
-	testValue = "test-value"
+	testKey             = "test-key"
+	testValue           = "test-value"
+	testDefaultEviction = 10
 )
 
 func getCommonCacheOpts() Opts {
-	return Opts{EvictionInterval: 10 * time.Second}
+	return Opts{EvictionInterval: testDefaultEviction * time.Second}
 }
 
 func TestCache_Get_Set(t *testing.T) {

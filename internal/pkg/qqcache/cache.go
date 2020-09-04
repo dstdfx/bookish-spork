@@ -6,8 +6,6 @@ import (
 	"time"
 )
 
-const defaultEvictionInterval = 60 * time.Second
-
 var (
 	ErrWrongTypeIndex = errors.New("wrong type of the value to get by index")
 	ErrWrongTypeLPush = errors.New("wrong type of the value to push list value")
