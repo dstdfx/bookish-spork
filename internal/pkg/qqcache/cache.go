@@ -40,22 +40,6 @@ func (c *Cache) Shutdown() {
 	c.stopCleaner <- struct{}{}
 }
 
-// entity represents an object that stores by key in cache.
-type entity struct {
-	value        interface{}
-	expiredAfter int64
-}
-
-// isExpired method returns true if the value is expired.
-func (e entity) isExpired() bool {
-	// Check if value is set to be persistent
-	if e.expiredAfter <= 0 {
-		return false
-	}
-
-	return time.Now().UTC().UnixNano() > e.expiredAfter
-}
-
 // Set method sets value to cache by key with specific TTL.
 // If given TTL <=0 then the key will never be expired.
 func (c *Cache) Set(key string, value interface{}, ttl time.Duration) {
