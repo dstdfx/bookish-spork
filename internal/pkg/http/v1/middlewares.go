@@ -107,7 +107,7 @@ func RequireIndex(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), ctxIndex, index)
+		ctx := context.WithValue(r.Context(), ctxIndex, v)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
