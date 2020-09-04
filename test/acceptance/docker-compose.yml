@@ -1,0 +1,11 @@
+version: "3.5"
+services:
+  bookish-spork:
+    image: golang:1.15
+    volumes:
+      - ../../:/bookish-spork
+    working_dir: /bookish-spork
+    environment:
+      ACC_TESTS:   "1"
+      GO111MODULE: "on"
+    command: bash -c "sleep 30 && go test -mod=vendor -timeout=60m -v --count=1 -p 1 ./..."
