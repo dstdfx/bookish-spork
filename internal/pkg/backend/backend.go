@@ -15,7 +15,7 @@ type Backend struct {
 }
 
 // New init new Backend instance.
-func New(log *zap.Logger) (*Backend, error) {
+func New(log *zap.Logger) *Backend {
 	opts := qqcache.Opts{
 		EvictionInterval: time.Duration(config.Config.Cache.EvictionInterval) * time.Second,
 	}
@@ -23,7 +23,7 @@ func New(log *zap.Logger) (*Backend, error) {
 	return &Backend{
 		Log:   log,
 		Cache: qqcache.New(opts),
-	}, nil
+	}
 }
 
 // Shutdown method closes all backend connections.

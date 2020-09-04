@@ -54,7 +54,7 @@ var RootCmd = &cobra.Command{
 			BuildCompiler:  buildCompiler,
 		}
 
-		//Start main routine
+		// Start main routine
 		if err := bookishspork.StartService(logger, opts); err != nil {
 			exitWithErr(fmt.Errorf("error starting bookish-spork app: %w", err))
 		}

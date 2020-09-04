@@ -26,8 +26,7 @@ func TestBackend(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	b, err := New(logger)
+	b := New(logger)
 	defer b.Shutdown()
-	assert.NoError(t, err)
 	assert.NotNil(t, b)
 }

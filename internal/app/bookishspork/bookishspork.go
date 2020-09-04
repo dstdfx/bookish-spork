@@ -12,7 +12,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dstdfx/bookish-spork/internal/pkg/backend"
 	"github.com/dstdfx/bookish-spork/internal/pkg/config"
+	public "github.com/dstdfx/bookish-spork/internal/pkg/http"
 	"go.uber.org/zap"
 )
 
@@ -41,7 +43,9 @@ func StartService(log *zap.Logger, opts StartOpts) error {
 		return fmt.Errorf("failed to start service: %w", err)
 	}
 
-	// TODO: add backend
+	// Init caching backend
+	b := backend.New(log)
+	defer b.Shutdown()
 
 	// Register service API handler
 	httpMux := http.NewServeMux()
@@ -74,7 +78,7 @@ func StartService(log *zap.Logger, opts StartOpts) error {
 		ReadTimeout:  time.Duration(config.Config.PublicAPI.ReadTimeout) * time.Second,
 		WriteTimeout: time.Duration(config.Config.PublicAPI.WriteTimeout) * time.Second,
 		IdleTimeout:  time.Duration(config.Config.PublicAPI.IdleTimeout) * time.Second,
-		//Handler:      public.InitAPIRouter(log, b),
+		Handler:      public.InitAPIRouter(b),
 	}
 
 	log.Debug("wait for shutdown signals")

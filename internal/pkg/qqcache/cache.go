@@ -20,7 +20,7 @@ type Opts struct {
 	EvictionInterval time.Duration
 }
 
-// Cache represents cache container.
+// Cache represents in-memory cache container.
 type Cache struct {
 	mux              sync.RWMutex
 	data             map[string]entity
