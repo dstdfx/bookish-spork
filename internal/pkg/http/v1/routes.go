@@ -12,28 +12,28 @@ func Routes(b *backend.Backend) http.Handler {
 	r := chi.NewRouter()
 
 	// GET /v1/get/<key>
-	r.Get("get/{key}", getHandler(b))
+	r.Get("/get/{key}", getHandler(b))
 
 	// POST /v1/set
-	r.Post("set", setHandler(b))
+	r.Post("/set", setHandler(b))
 
 	// GET /v1/keys
-	r.Get("keys", keysHandler(b))
+	r.Get("/keys", keysHandler(b))
 
 	// DELETE /v1/remove/<key>
-	r.Delete("delete/{key}", removeHandler(b))
+	r.Delete("/delete/{key}", removeHandler(b))
 
 	// POST /v1/rpush
-	r.Post("rpush", rpushHandler(b))
+	r.Post("/rpush", rpushHandler(b))
 
 	// GET /v1/lindex/<key>/<index>
-	r.Get("lindex/{key}/{index}", lindexHandler(b))
+	r.Get("/lindex/{key}/{index}", lindexHandler(b))
 
 	// POST /v1/hset
-	r.Post("hset", hsetHandler(b))
+	r.Post("/hset", hsetHandler(b))
 
 	// GET /v1/hget/<key>/<hkey>
-	r.Get("hget/{key}/{hkey}", hgetHandler(b))
+	r.Get("/hget/{key}/{hkey}", hgetHandler(b))
 
 	return r
 }
