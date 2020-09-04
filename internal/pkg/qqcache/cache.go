@@ -9,7 +9,9 @@ import (
 const defaultEvictionInterval = 60 * time.Second
 
 var (
+	ErrWrongTypeIndex = errors.New("wrong type of the value to get by index")
 	ErrWrongTypeLPush = errors.New("wrong type of the value to push list value")
+	ErrNotFound       = errors.New("not value found by key")
 )
 
 // Cache represents cache container.
@@ -130,6 +132,33 @@ func (c *Cache) RPush(key string, value interface{}, ttl time.Duration) error {
 	c.data[key] = v
 
 	return nil
+}
+
+// LIndex method returns the element at the index in the list.
+// The index is zero-based, 0 means the first element of the list.
+// When the value at key is not a list, an error is returned.
+// When index is not exist in the list - nil value is returned.
+func (c *Cache) LIndex(key string, index int) (interface{}, error) {
+	c.mux.RLock()
+	defer c.mux.RUnlock()
+
+	v, isExist := c.data[key]
+	if isExist && !v.isExpired() {
+		// Check if type is slice
+		sl, ok := v.value.([]interface{})
+		if !ok {
+			return nil, ErrWrongTypeIndex
+		}
+
+		// Check if index is exist and return nil value if it's not
+		if len(sl)-1 < index {
+			return nil, nil
+		}
+
+		return sl[index], nil
+	}
+
+	return nil, ErrNotFound
 }
 
 func validateExpiredAfter(ttl time.Duration) int64 {

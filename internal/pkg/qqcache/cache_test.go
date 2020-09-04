@@ -118,6 +118,7 @@ func TestCache_Keys(t *testing.T) {
 
 func TestCache_RPush(t *testing.T) {
 	c := New(10 * time.Second)
+	defer c.Shutdown()
 	expected := []int{1, 2, 3, 4, 5}
 
 	// Add list and values
@@ -145,6 +146,7 @@ func TestCache_RPush(t *testing.T) {
 
 func TestCache_RPush_Expired(t *testing.T) {
 	c := New(10 * time.Second)
+	defer c.Shutdown()
 	expected := []int{3, 5}
 
 	// Add some values to list
@@ -184,6 +186,7 @@ func TestCache_RPush_Expired(t *testing.T) {
 
 func TestCache_RPush_WrongValueType(t *testing.T) {
 	c := New(10 * time.Second)
+	defer c.Shutdown()
 
 	// Add string value
 	c.Set(testKey, testValue, 0)
@@ -192,4 +195,74 @@ func TestCache_RPush_WrongValueType(t *testing.T) {
 	err := c.RPush(testKey, 1, 0)
 	require.Error(t, err)
 	require.True(t, errors.Is(err, ErrWrongTypeLPush))
+}
+
+func TestCache_RPush_Nil(t *testing.T) {
+	c := New(10 * time.Second)
+	defer c.Shutdown()
+
+	// Add nil element to the list
+	err := c.RPush(testKey, nil, 0)
+	require.NoError(t, err)
+
+	err = c.RPush(testKey, 1, 0)
+	require.NoError(t, err)
+
+	got, err := c.LIndex(testKey, 0)
+	require.NoError(t, err)
+	require.Nil(t, got)
+}
+
+func TestCache_LIndex(t *testing.T) {
+	c := New(10 * time.Second)
+	defer c.Shutdown()
+
+	// Add list and values
+	require.NoError(t, c.RPush(testKey, 1, 0))
+	require.NoError(t, c.RPush(testKey, 2, 0))
+	require.NoError(t, c.RPush(testKey, 3, 0))
+	require.NoError(t, c.RPush(testKey, 4, 0))
+	require.NoError(t, c.RPush(testKey, 5, 0))
+
+	// Get value at the index 1
+	got, err := c.LIndex(testKey, 1)
+	require.NoError(t, err)
+	require.NotEmpty(t, got)
+	require.Equal(t, 2, got.(int))
+
+	// Get value at the index 4
+	got, err = c.LIndex(testKey, 4)
+	require.NoError(t, err)
+	require.NotEmpty(t, got)
+	require.Equal(t, 5, got.(int))
+
+	// Get value at not-existing index in the list
+	got, err = c.LIndex(testKey, 5)
+	require.NoError(t, err)
+	require.Nil(t, got)
+}
+
+func TestCache_LIndex_WrongValueType(t *testing.T) {
+	c := New(10 * time.Second)
+	defer c.Shutdown()
+
+	// Add string value
+	c.Set(testKey, testValue, 0)
+
+	// Try to get index of the list
+	v, err := c.LIndex(testKey, 1)
+	require.Error(t, err)
+	require.Nil(t, v)
+	require.True(t, errors.Is(err, ErrWrongTypeIndex))
+}
+
+func TestCache_LIndex_NotFound(t *testing.T) {
+	c := New(10 * time.Second)
+	defer c.Shutdown()
+
+	// Try to get index of the list
+	v, err := c.LIndex(testKey, 1)
+	require.Error(t, err)
+	require.Nil(t, v)
+	require.True(t, errors.Is(err, ErrNotFound))
 }
