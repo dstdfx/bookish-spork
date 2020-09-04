@@ -20,6 +20,9 @@ func InitTestConfig() {
 			UseStdout: true,
 			Debug:     true,
 		},
+		Cache: config.CacheConfig{
+			EvictionInterval: 60,
+		},
 	}
 }
 

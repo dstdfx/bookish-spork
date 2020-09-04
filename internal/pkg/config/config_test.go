@@ -24,6 +24,8 @@ service_api:
   read_timeout: 15
   write_timeout: 20
   idle_timeout: 30
+cache:
+  eviction_interval: 30
 `
 
 	expected := &AppConfig{
@@ -46,6 +48,7 @@ service_api:
 			WriteTimeout:  20,
 			IdleTimeout:   30,
 		},
+		Cache: CacheConfig{EvictionInterval: 30},
 	}
 
 	err := initFromString([]byte(configString))
@@ -72,6 +75,7 @@ func TestConfigInitFromStringDefaultValues(t *testing.T) {
 			WriteTimeout:  120,
 			IdleTimeout:   240,
 		},
+		Cache: CacheConfig{EvictionInterval: defaultEvictionInterval},
 	}
 
 	err := initFromString([]byte(configString))

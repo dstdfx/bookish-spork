@@ -33,10 +33,6 @@ type Cache struct {
 // New returns new instance of Cache.
 // If eviction interval is equal or less that 0 - default eviction will be used.
 func New(opts Opts) *Cache {
-	if opts.EvictionInterval <= 0 {
-		opts.EvictionInterval = defaultEvictionInterval
-	}
-
 	c := &Cache{
 		mux:              sync.RWMutex{},
 		data:             make(map[string]entity),

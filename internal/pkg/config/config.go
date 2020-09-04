@@ -21,6 +21,7 @@ const (
 	defaultHTTPReadTimeout  = 60
 	defaultHTTPWriteTimeout = 120
 	defaultHTTPIdleTimeout  = 240
+	defaultEvictionInterval = 60
 )
 
 // Config is a global container for all configuration options.
@@ -31,6 +32,7 @@ type AppConfig struct {
 	Log        LogConfig              `yaml:"log"`
 	PublicAPI  PublicAPIServerConfig  `yaml:"public_api"`
 	ServiceAPI ServiceAPIServerConfig `yaml:"service_api"`
+	Cache      CacheConfig            `yaml:"cache"`
 }
 
 // LogConfig contains logger configuration.
@@ -56,6 +58,11 @@ type ServiceAPIServerConfig struct {
 	ReadTimeout   int    `yaml:"read_timeout"`
 	WriteTimeout  int    `yaml:"write_timeout"`
 	IdleTimeout   int    `yaml:"idle_timeout"`
+}
+
+// CacheConfig contains cache related configuration.
+type CacheConfig struct {
+	EvictionInterval int `yaml:"eviction_interval"`
 }
 
 // CheckConfig helps to check if global application config is ready.
@@ -113,6 +120,8 @@ func initFromString(data []byte) error {
 		&Config.ServiceAPI.ReadTimeout:  defaultHTTPReadTimeout,
 		&Config.ServiceAPI.WriteTimeout: defaultHTTPWriteTimeout,
 		&Config.ServiceAPI.IdleTimeout:  defaultHTTPIdleTimeout,
+		// Cache defaults
+		&Config.Cache.EvictionInterval: defaultEvictionInterval,
 	}
 	for currentValue, defaultValue := range defaultIntParameters {
 		setDefaultIntValue(currentValue, defaultValue)

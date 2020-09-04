@@ -17,13 +17,6 @@ func getCommonCacheOpts() Opts {
 	return Opts{EvictionInterval: 10 * time.Second}
 }
 
-func TestNew_DefaultEviction(t *testing.T) {
-	c := New(Opts{EvictionInterval: 0})
-	defer c.Shutdown()
-	require.NotEmpty(t, c)
-	require.Equal(t, defaultEvictionInterval, c.evictionInterval)
-}
-
 func TestCache_Get_Set(t *testing.T) {
 	c := New(getCommonCacheOpts())
 	defer c.Shutdown()
