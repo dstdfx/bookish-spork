@@ -2,6 +2,7 @@ package v1
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/dstdfx/bookish-spork/internal/pkg/backend"
 	"github.com/go-chi/chi"
@@ -16,14 +17,15 @@ func Routes(b *backend.Backend) http.Handler {
 		Get("/get/{key}", getHandler(b))
 
 	// POST /v1/set
-	r.Post("/set", setHandler(b))
+	r.With(RequireSetParams).
+		Post("/set", setHandler(b))
 
 	// GET /v1/keys
 	r.Get("/keys", keysHandler(b))
 
 	// DELETE /v1/remove/<key>
 	r.With(RequireKeyName).
-		Delete("/delete/{key}", removeHandler(b))
+		Delete("/remove/{key}", removeHandler(b))
 
 	// POST /v1/rpush
 	r.Post("/rpush", rpushHandler(b))
@@ -51,6 +53,7 @@ func getHandler(b *backend.Backend) func(w http.ResponseWriter, req *http.Reques
 		k, ok := b.Cache.Get(key)
 		if !ok {
 			w.WriteHeader(http.StatusNotFound)
+
 			return
 		}
 
@@ -61,19 +64,30 @@ func getHandler(b *backend.Backend) func(w http.ResponseWriter, req *http.Reques
 
 func setHandler(b *backend.Backend) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusNotImplemented)
+		// Get set body from router's context
+		body := GetSetBody(req.Context())
+
+		// Set new entity
+		b.Cache.Set(body.Key, body.Value, time.Duration(body.TTL)*time.Second)
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
 func keysHandler(b *backend.Backend) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusNotImplemented)
+		w.WriteHeader(http.StatusOK)
+		JSON(w, map[string]interface{}{"keys": b.Cache.Keys()})
 	}
 }
 
 func removeHandler(b *backend.Backend) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusNotImplemented)
+		// Get key from router's context
+		key := GetKeyName(req.Context())
+
+		// Remove key from the cache
+		b.Cache.Remove(key)
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
