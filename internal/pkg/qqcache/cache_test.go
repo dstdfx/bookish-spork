@@ -2,6 +2,8 @@ package qqcache
 
 import (
 	"errors"
+	"runtime"
+	"sync"
 	"testing"
 	"time"
 
@@ -418,4 +420,60 @@ func TestCache_HGet_WrongType(t *testing.T) {
 	require.Error(t, err)
 	require.True(t, errors.Is(err, ErrWrongTypeHGet))
 	require.Nil(t, got)
+}
+
+func BenchmarkCacheGetExpiring(b *testing.B) {
+	benchmarkCacheGet(b, 30*time.Second, 10*time.Second)
+}
+
+func BenchmarkCacheGetNotExpiring(b *testing.B) {
+	benchmarkCacheGet(b, 5*time.Minute, 0)
+}
+
+func benchmarkCacheGet(b *testing.B, evictionInterval, expiration time.Duration) {
+	b.StopTimer()
+	tc := New(Opts{EvictionInterval: evictionInterval})
+	tc.Set("foo", "bar", expiration)
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		tc.Get("foo")
+	}
+}
+
+func BenchmarkCacheGetConcurrentExpiring(b *testing.B) {
+	benchmarkCacheGetConcurrent(b, 30*time.Second, 5*time.Minute)
+}
+
+func BenchmarkCacheGetConcurrentNotExpiring(b *testing.B) {
+	benchmarkCacheGetConcurrent(b, 5*time.Minute, 0)
+}
+
+func benchmarkCacheGetConcurrent(b *testing.B, evictionInterval, expiration time.Duration) {
+	b.StopTimer()
+	tc := New(Opts{EvictionInterval: evictionInterval})
+	tc.Set("foo", "bar", expiration)
+	wg := new(sync.WaitGroup)
+	workers := runtime.NumCPU()
+	each := b.N / workers
+	wg.Add(workers)
+	b.StartTimer()
+	for i := 0; i < workers; i++ {
+		go func() {
+			for j := 0; j < each; j++ {
+				tc.Get("foo")
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
+
+func BenchmarkCacheSetRemove(b *testing.B) {
+	b.StopTimer()
+	tc := New(Opts{EvictionInterval: 30 * time.Second})
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		tc.Set("foo", "bar", 0)
+		tc.Remove("foo")
+	}
 }

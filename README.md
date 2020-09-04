@@ -219,6 +219,5 @@ make tests
 
 ## TODO
 
-* Add benchmark tests
 * Code refactoring of `http` and `qqcache` packages
 * Add missing functions to work with `list` and `hash maps`
