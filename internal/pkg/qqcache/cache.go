@@ -11,6 +11,8 @@ const defaultEvictionInterval = 60 * time.Second
 var (
 	ErrWrongTypeIndex = errors.New("wrong type of the value to get by index")
 	ErrWrongTypeLPush = errors.New("wrong type of the value to push list value")
+	ErrWrongTypeHSet  = errors.New("wrong type of the value to set hash map value")
+	ErrWrongTypeHGet  = errors.New("wrong type of the value to get hash map key")
 	ErrNotFound       = errors.New("not value found by key")
 )
 
@@ -156,6 +158,70 @@ func (c *Cache) LIndex(key string, index int) (interface{}, error) {
 		}
 
 		return sl[index], nil
+	}
+
+	return nil, ErrNotFound
+}
+
+// HSet method sets value in the hash stored at key to value.
+// If key does not exist, a new key holding a hash is created.
+// If field already exists in the hash, it is overwritten.
+// TTL param could be omitted if it's adding to the existing hash map.
+func (c *Cache) HSet(key string, value map[string]interface{}, ttl time.Duration) error {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+
+	v, isExist := c.data[key]
+	if !isExist || v.isExpired() {
+		// Add new entity with hm value
+		e := entity{
+			value:        value,
+			expiredAfter: validateExpiredAfter(ttl),
+		}
+		c.data[key] = e
+
+		return nil
+	}
+
+	// Check if found value it's a map
+	hm, ok := v.value.(map[string]interface{})
+	if !ok {
+		return ErrWrongTypeHSet
+	}
+
+	// Avoid cases when hm has been initialized as nil
+	if hm == nil {
+		hm = make(map[string]interface{})
+	}
+
+	// Set new values to hash map
+	for k, v := range value {
+		hm[k] = v
+	}
+
+	// Update entity in cache
+	v.value = hm
+	c.data[key] = v
+
+	return nil
+}
+
+// HGet method returns the value associated with field in the hash stored at key.
+// When the value at key is not a hash map, an error is returned.
+// When key in hash map value is not exist - nil value is returned.
+func (c *Cache) HGet(key, hkey string) (interface{}, error) {
+	c.mux.RLock()
+	defer c.mux.RUnlock()
+
+	v, isExist := c.data[key]
+	if isExist && !v.isExpired() {
+		// Check if type is map
+		hm, ok := v.value.(map[string]interface{})
+		if !ok {
+			return nil, ErrWrongTypeHGet
+		}
+
+		return hm[hkey], nil
 	}
 
 	return nil, ErrNotFound

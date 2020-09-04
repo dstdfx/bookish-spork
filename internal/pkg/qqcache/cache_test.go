@@ -266,3 +266,158 @@ func TestCache_LIndex_NotFound(t *testing.T) {
 	require.Nil(t, v)
 	require.True(t, errors.Is(err, ErrNotFound))
 }
+
+func TestCache_HSet(t *testing.T) {
+	c := New(10 * time.Second)
+	defer c.Shutdown()
+
+	hmValue := map[string]interface{}{
+		"key0": "value0",
+		"key1": "value1",
+		"key2": "value2",
+	}
+
+	// Set hm value
+	err := c.HSet(testKey, hmValue, 0)
+	require.NoError(t, err)
+
+	// Get hm value to check
+	v, ok := c.Get(testKey)
+	require.True(t, ok)
+	require.NotNil(t, v)
+
+	// Check values of the hm
+	got, ok := v.(map[string]interface{})
+	require.True(t, ok)
+	require.EqualValues(t, hmValue, got)
+}
+
+func TestCache_HSet_OverwriteHKeys(t *testing.T) {
+	c := New(10 * time.Second)
+	defer c.Shutdown()
+
+	hmValue := map[string]interface{}{
+		"key0": "value0",
+		"key1": "value1",
+		"key2": "value2",
+	}
+
+	// Set hm value
+	err := c.HSet(testKey, hmValue, 0)
+	require.NoError(t, err)
+
+	// Overwrite hm key value
+	err = c.HSet(testKey, map[string]interface{}{"key0": "new-value"}, 0)
+	require.NoError(t, err)
+
+	// Get hm value to check
+	v, ok := c.Get(testKey)
+	require.True(t, ok)
+	require.NotNil(t, v)
+
+	expected := hmValue
+	expected["key0"] = "new-value"
+
+	// Check values of the hm
+	got, ok := v.(map[string]interface{})
+	require.True(t, ok)
+	require.EqualValues(t, expected, got)
+}
+
+func TestCache_HSet_WrongType(t *testing.T) {
+	c := New(10 * time.Second)
+	defer c.Shutdown()
+
+	c.Set(testKey, 0, 0)
+
+	// Try to set hm key into wrong value type
+	err := c.HSet(testKey, map[string]interface{}{"key0": "new-value"}, 0)
+	require.Error(t, err)
+	require.True(t, errors.Is(err, ErrWrongTypeHSet))
+}
+
+func TestCache_HSet_NilHM(t *testing.T) {
+	c := New(10 * time.Second)
+	defer c.Shutdown()
+
+	err := c.HSet(testKey, nil, 0)
+	require.NoError(t, err)
+
+	// Set hm value to nil hm
+	err = c.HSet(testKey, map[string]interface{}{"key0": "new-value"}, 0)
+	require.NoError(t, err)
+
+	// Get hm value to check
+	v, ok := c.Get(testKey)
+	require.True(t, ok)
+	require.NotNil(t, v)
+
+	expected := map[string]interface{}{"key0": "new-value"}
+
+	// Check values of the hm
+	got, ok := v.(map[string]interface{})
+	require.True(t, ok)
+	require.EqualValues(t, expected, got)
+}
+
+func TestCache_HGet(t *testing.T) {
+	c := New(10 * time.Second)
+	defer c.Shutdown()
+
+	hmValue := map[string]interface{}{
+		"key0": "value0",
+		"key1": "value1",
+		"key2": "value2",
+	}
+
+	// Set hm value
+	err := c.HSet(testKey, hmValue, 0)
+	require.NoError(t, err)
+
+	got, err := c.HGet(testKey, "key1")
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	require.Equal(t, "value1", got.(string))
+}
+
+func TestCache_HGet_NoKey(t *testing.T) {
+	c := New(10 * time.Second)
+	defer c.Shutdown()
+
+	got, err := c.HGet(testKey, "some")
+	require.Error(t, err)
+	require.True(t, errors.Is(err, ErrNotFound))
+	require.Nil(t, got)
+}
+
+func TestCache_HGet_NoHKey(t *testing.T) {
+	c := New(10 * time.Second)
+	defer c.Shutdown()
+
+	hmValue := map[string]interface{}{
+		"key0": "value0",
+		"key1": "value1",
+		"key2": "value2",
+	}
+
+	// Set hm value
+	err := c.HSet(testKey, hmValue, 0)
+	require.NoError(t, err)
+
+	got, err := c.HGet(testKey, "not-existing")
+	require.NoError(t, err)
+	require.Nil(t, got)
+}
+
+func TestCache_HGet_WrongType(t *testing.T) {
+	c := New(10 * time.Second)
+	defer c.Shutdown()
+
+	// Set value
+	c.Set(testKey, 0, 0)
+
+	got, err := c.HGet(testKey, "key1")
+	require.Error(t, err)
+	require.True(t, errors.Is(err, ErrWrongTypeHGet))
+	require.Nil(t, got)
+}
