@@ -42,6 +42,22 @@ func TestCache_Get_Set(t *testing.T) {
 	require.Nil(t, got)
 }
 
+func TestCache_Get_Set_PersistentKey(t *testing.T) {
+	c := New(10 * time.Second)
+
+	// Set test value to the cache with 0 ttl
+	c.Set(testKey, testValue, 0)
+
+	// Get value from the cache
+	got, ok := c.Get(testKey)
+
+	// Check test value exists by the key and it's the same string
+	require.True(t, ok)
+	gotString, ok := got.(string)
+	require.True(t, ok)
+	require.Equal(t, testValue, gotString)
+}
+
 func TestCache_SetNil(t *testing.T) {
 	c := New(10 * time.Second)
 

@@ -8,7 +8,6 @@ import (
 const defaultEvictionInterval = 60 * time.Second
 
 // TODO: implement cache cleaner
-// TODO: add persistent keys
 
 // Cache represents cache container.
 type Cache struct {
@@ -39,22 +38,25 @@ type entity struct {
 	expiredAfter int64
 }
 
+// isExpired method returns true if the value is expired.
+func (e entity) isExpired() bool {
+	// Check if value is set to be persistent
+	if e.expiredAfter <= 0 {
+		return false
+	}
+
+	return time.Now().UTC().UnixNano() > e.expiredAfter
+}
+
 // Set method sets value to cache by key with specific TTL.
 // If given TTL <=0 then the key will never be expired.
 func (c *Cache) Set(key string, value interface{}, ttl time.Duration) {
 	c.mux.Lock()
 	defer c.mux.Unlock()
 
-	var expiredAfter int64
-
-	// Set time when cache is expired
-	if ttl > 0 {
-		expiredAfter = time.Now().UTC().Add(ttl).UnixNano()
-	}
-
 	c.data[key] = entity{
 		value:        value,
-		expiredAfter: expiredAfter,
+		expiredAfter: validateExpiredAfter(ttl),
 	}
 }
 
@@ -66,7 +68,7 @@ func (c *Cache) Get(key string) (interface{}, bool) {
 
 	// Look up for the value by key
 	v, isExist := c.data[key]
-	if isExist && time.Now().UTC().UnixNano() < v.expiredAfter {
+	if isExist && !v.isExpired() {
 		// If value exists and not expired return the value
 		return v.value, isExist
 	}
@@ -89,10 +91,21 @@ func (c *Cache) Keys() []string {
 
 	keys := make([]string, 0, len(c.data))
 	for k, v := range c.data {
-		if time.Now().UTC().UnixNano() < v.expiredAfter {
+		if !v.isExpired() {
 			keys = append(keys, k)
 		}
 	}
 
 	return keys
+}
+
+func validateExpiredAfter(ttl time.Duration) int64 {
+	var expiredAfter int64
+
+	// Set time when cache is expired
+	if ttl > 0 {
+		expiredAfter = time.Now().UTC().Add(ttl).UnixNano()
+	}
+
+	return expiredAfter
 }
