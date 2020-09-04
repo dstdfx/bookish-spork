@@ -8,7 +8,7 @@ import (
 )
 
 func TestRunCleaner(t *testing.T) {
-	c := New(time.Second)
+	c := New(Opts{EvictionInterval: time.Second})
 
 	// Set key with low TTL
 	c.Set(testKey, testValue, time.Second)
