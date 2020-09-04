@@ -51,6 +51,7 @@ func Routes(b *backend.Backend) http.Handler {
 	// GET /v1/hget/<key>/<hkey>
 	r.
 		With(RequireKeyName).
+		With(RequireHKeyName).
 		Get("/hget/{key}/{hkey}", hgetHandler(b))
 
 	return r
@@ -161,6 +162,24 @@ func hsetHandler(b *backend.Backend) func(w http.ResponseWriter, req *http.Reque
 
 func hgetHandler(b *backend.Backend) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusNotImplemented)
+		// Get key from router's context
+		key := GetKeyName(req.Context())
+		hkey := GetHKeyName(req.Context())
+
+		v, err := b.Cache.HGet(key, hkey)
+		if err != nil {
+			if errors.Is(err, qqcache.ErrNotFound) {
+				w.WriteHeader(http.StatusNotFound)
+			}
+			if errors.Is(err, qqcache.ErrWrongTypeHGet) {
+				w.WriteHeader(http.StatusBadRequest)
+				JSON(w, map[string]string{"error": err.Error()})
+			}
+
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		JSON(w, map[string]interface{}{"value": v})
 	}
 }

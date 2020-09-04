@@ -18,8 +18,10 @@ import (
 )
 
 const (
-	testKey   = "test-key"
-	testValue = "test-value"
+	testKey       = "test-key"
+	testValue     = "test-value"
+	testHkey      = "test-hkey"
+	testHKeyValue = "test-hkey-value"
 )
 
 // Tests for POST /v1/set
@@ -643,3 +645,112 @@ func TestHSet_AppendKeys(t *testing.T) {
 }
 
 // Tests for GET /v1/hget/<key>/<hkey>
+
+func TestHGet_OK(t *testing.T) {
+	// Check acceptance test flag
+	if !testutils.IsAccTestEnabled(t) {
+		return
+	}
+
+	// Init global app configuration
+	testutils.InitTestConfig()
+
+	// Initialize logger
+	logger, err := log.InitLogger(log.InitLoggerOpts{
+		Debug:     config.Config.Log.Debug,
+		UseStdout: config.Config.Log.UseStdout,
+		File:      config.Config.Log.File,
+	})
+	assert.NoError(t, err)
+
+	// Prepare backend
+	b := backend.New(logger)
+	assert.NotEmpty(t, b)
+
+	// Set test value to cache
+	assert.NoError(t, b.Cache.HSet(testKey, map[string]interface{}{testHkey: testHKeyValue}, 0))
+
+	// Setup handlers
+	router := InitAPIRouter(b)
+
+	// Test a request
+	w := httptest.NewRecorder()
+	r, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/v1/hget/%s/%s", testKey, testHkey), nil)
+	assert.NoError(t, err)
+	router.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t,
+		testutils.RespToJSON(t,
+			map[string]string{"value": testHKeyValue},
+		), w.Body.String())
+}
+
+func TestHGet_BadRequest(t *testing.T) {
+	// Check acceptance test flag
+	if !testutils.IsAccTestEnabled(t) {
+		return
+	}
+
+	// Init global app configuration
+	testutils.InitTestConfig()
+
+	// Initialize logger
+	logger, err := log.InitLogger(log.InitLoggerOpts{
+		Debug:     config.Config.Log.Debug,
+		UseStdout: config.Config.Log.UseStdout,
+		File:      config.Config.Log.File,
+	})
+	assert.NoError(t, err)
+
+	// Prepare backend
+	b := backend.New(logger)
+	assert.NotEmpty(t, b)
+
+	// Set test value to cache
+	b.Cache.Set(testKey, testValue, 0)
+
+	// Setup handlers
+	router := InitAPIRouter(b)
+
+	// Test a request
+	w := httptest.NewRecorder()
+	r, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/v1/hget/%s/%s", testKey, testHkey), nil)
+	assert.NoError(t, err)
+	router.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestHGet_NotFound(t *testing.T) {
+	// Check acceptance test flag
+	if !testutils.IsAccTestEnabled(t) {
+		return
+	}
+
+	// Init global app configuration
+	testutils.InitTestConfig()
+
+	// Initialize logger
+	logger, err := log.InitLogger(log.InitLoggerOpts{
+		Debug:     config.Config.Log.Debug,
+		UseStdout: config.Config.Log.UseStdout,
+		File:      config.Config.Log.File,
+	})
+	assert.NoError(t, err)
+
+	// Prepare backend
+	b := backend.New(logger)
+	assert.NotEmpty(t, b)
+
+	// Setup handlers
+	router := InitAPIRouter(b)
+
+	// Test a request
+	w := httptest.NewRecorder()
+	r, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/v1/hget/%s/%s", testKey, testHkey), nil)
+	assert.NoError(t, err)
+	router.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}

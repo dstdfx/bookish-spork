@@ -12,6 +12,7 @@ import (
 const (
 	keyParam   = "key"
 	indexParam = "index"
+	hkeyParam  = "hkey"
 )
 
 type ctxKey int
@@ -22,6 +23,7 @@ const (
 	ctxHSetBody
 	ctxRPushBody
 	ctxIndex
+	ctxHKeyName
 )
 
 // RequireKeyName middleware checks that 'key' parameter is set.
@@ -43,6 +45,32 @@ func RequireKeyName(next http.Handler) http.Handler {
 // GetKeyName retrieves key name value from context.
 func GetKeyName(ctx context.Context) string {
 	v, ok := ctx.Value(ctxKeyName).(string)
+	if !ok {
+		return ""
+	}
+
+	return v
+}
+
+// RequireHKeyName middleware checks that 'hkey' parameter is set.
+func RequireHKeyName(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		key := chi.URLParam(r, hkeyParam)
+		if key == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			JSON(w, map[string]string{"error": "hkey is required"})
+
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), ctxHKeyName, key)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// GetKeyName retrieves hash map key name value from context.
+func GetHKeyName(ctx context.Context) string {
+	v, ok := ctx.Value(ctxHKeyName).(string)
 	if !ok {
 		return ""
 	}
