@@ -28,7 +28,8 @@ func Routes(b *backend.Backend) http.Handler {
 		Delete("/remove/{key}", removeHandler(b))
 
 	// POST /v1/rpush
-	r.Post("/rpush", rpushHandler(b))
+	r.With(RequireRPushParams).
+		Post("/rpush", rpushHandler(b))
 
 	// GET /v1/lindex/<key>/<index>
 	r.With(RequireKeyName).
@@ -93,7 +94,17 @@ func removeHandler(b *backend.Backend) func(w http.ResponseWriter, req *http.Req
 
 func rpushHandler(b *backend.Backend) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusNotImplemented)
+		// Get rpush body from router's context
+		body := GetRPushBody(req.Context())
+
+		err := b.Cache.RPush(body.Key, body.Value, time.Duration(body.TTL)*time.Second)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			JSON(w, map[string]string{"error": err.Error()})
+
+			return
+		}
+		w.WriteHeader(http.StatusOK)
 	}
 }
 

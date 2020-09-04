@@ -42,6 +42,7 @@ func TestSet_OK(t *testing.T) {
 
 	// Prepare backend
 	b := backend.New(logger)
+	defer b.Shutdown()
 	assert.NotEmpty(t, b)
 
 	setBody := &v1.SetRequestBody{
@@ -83,6 +84,7 @@ func TestSet_BadRequest(t *testing.T) {
 
 	// Prepare backend
 	b := backend.New(logger)
+	defer b.Shutdown()
 	assert.NotEmpty(t, b)
 
 	setBody := &v1.SetRequestBody{
@@ -164,6 +166,7 @@ func TestGet_NotFound(t *testing.T) {
 
 	// Prepare backend
 	b := backend.New(logger)
+	defer b.Shutdown()
 	assert.NotEmpty(t, b)
 
 	// Setup handlers
@@ -199,6 +202,7 @@ func TestKeys_OK(t *testing.T) {
 
 	// Prepare backend
 	b := backend.New(logger)
+	defer b.Shutdown()
 	assert.NotEmpty(t, b)
 
 	// Set test value to cache
@@ -241,6 +245,7 @@ func TestRemove_OK(t *testing.T) {
 
 	// Prepare backend
 	b := backend.New(logger)
+	defer b.Shutdown()
 	assert.NotEmpty(t, b)
 
 	// Set test value to cache
@@ -256,4 +261,136 @@ func TestRemove_OK(t *testing.T) {
 	router.ServeHTTP(w, r)
 
 	assert.Equal(t, http.StatusNoContent, w.Code)
+}
+
+// Tests for POST /v1/rpush
+
+func TestRPush_OK(t *testing.T) {
+	// Check acceptance test flag
+	if !testutils.IsAccTestEnabled(t) {
+		return
+	}
+
+	// Init global app configuration
+	testutils.InitTestConfig()
+
+	// Initialize logger
+	logger, err := log.InitLogger(log.InitLoggerOpts{
+		Debug:     config.Config.Log.Debug,
+		UseStdout: config.Config.Log.UseStdout,
+		File:      config.Config.Log.File,
+	})
+	assert.NoError(t, err)
+
+	// Prepare backend
+	b := backend.New(logger)
+	defer b.Shutdown()
+	assert.NotEmpty(t, b)
+
+	rpushBody := &v1.RPushRequestBody{
+		Key:   testKey,
+		Value: testValue,
+		TTL:   10,
+	}
+	reqBody, err := json.Marshal(rpushBody)
+	assert.NoError(t, err)
+
+	// Setup handlers
+	router := InitAPIRouter(b)
+
+	// Test a request
+	w := httptest.NewRecorder()
+	r, err := http.NewRequest(http.MethodPost, "/v1/rpush", bytes.NewReader(reqBody))
+	assert.NoError(t, err)
+	router.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestRPush_AppendValue(t *testing.T) {
+	// Check acceptance test flag
+	if !testutils.IsAccTestEnabled(t) {
+		return
+	}
+
+	// Init global app configuration
+	testutils.InitTestConfig()
+
+	// Initialize logger
+	logger, err := log.InitLogger(log.InitLoggerOpts{
+		Debug:     config.Config.Log.Debug,
+		UseStdout: config.Config.Log.UseStdout,
+		File:      config.Config.Log.File,
+	})
+	assert.NoError(t, err)
+
+	// Prepare backend
+	b := backend.New(logger)
+	defer b.Shutdown()
+	assert.NotEmpty(t, b)
+
+	assert.NoError(t, b.Cache.RPush(testKey, testValue, 0))
+
+	rpushBody := &v1.RPushRequestBody{
+		Key:   testKey,
+		Value: testValue,
+		TTL:   10,
+	}
+	reqBody, err := json.Marshal(rpushBody)
+	assert.NoError(t, err)
+
+	// Setup handlers
+	router := InitAPIRouter(b)
+
+	// Test a request
+	w := httptest.NewRecorder()
+	r, err := http.NewRequest(http.MethodPost, "/v1/rpush", bytes.NewReader(reqBody))
+	assert.NoError(t, err)
+	router.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestRPush_BadRequest(t *testing.T) {
+	// Check acceptance test flag
+	if !testutils.IsAccTestEnabled(t) {
+		return
+	}
+
+	// Init global app configuration
+	testutils.InitTestConfig()
+
+	// Initialize logger
+	logger, err := log.InitLogger(log.InitLoggerOpts{
+		Debug:     config.Config.Log.Debug,
+		UseStdout: config.Config.Log.UseStdout,
+		File:      config.Config.Log.File,
+	})
+	assert.NoError(t, err)
+
+	// Prepare backend
+	b := backend.New(logger)
+	defer b.Shutdown()
+	assert.NotEmpty(t, b)
+
+	// Test non-list value
+	b.Cache.Set(testKey, 1, 0)
+
+	rpushBody := &v1.RPushRequestBody{
+		Key:   testKey,
+		Value: testValue,
+	}
+	reqBody, err := json.Marshal(rpushBody)
+	assert.NoError(t, err)
+
+	// Setup handlers
+	router := InitAPIRouter(b)
+
+	// Test a request
+	w := httptest.NewRecorder()
+	r, err := http.NewRequest(http.MethodPost, "/v1/rpush", bytes.NewReader(reqBody))
+	assert.NoError(t, err)
+	router.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }

@@ -17,6 +17,7 @@ type ctxKey int
 const (
 	ctxKeyName ctxKey = iota
 	ctxSetBody
+	ctxRPushBody
 )
 
 // RequireKeyName middleware checks that 'key' parameter is set.
@@ -87,6 +88,55 @@ func RequireSetParams(next http.Handler) http.Handler {
 // GetSetBody retrieves set body from context.
 func GetSetBody(ctx context.Context) *SetRequestBody {
 	v, ok := ctx.Value(ctxSetBody).(SetRequestBody)
+	if !ok {
+		return nil
+	}
+
+	return &v
+}
+
+// RPushRequestBody represents rpush request body.
+type RPushRequestBody struct {
+	Key   string      `json:"key"`
+	Value interface{} `json:"value"`
+	TTL   int         `json:"ttl"`
+}
+
+func (b *RPushRequestBody) IsValid() bool {
+	return b.Key != "" && b.Value != nil
+}
+
+// RequireRPushParams validates request body for 'rpush' operation.
+func RequireRPushParams(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		rpush := RPushRequestBody{}
+		err := json.NewDecoder(r.Body).Decode(&rpush)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			JSON(w, map[string]string{"error": "rpush body is invalid"})
+
+			return
+		}
+
+		// Validate set body
+		if !rpush.IsValid() {
+			w.WriteHeader(http.StatusBadRequest)
+			JSON(w, map[string]string{"error": "rpush body is invalid"})
+
+			return
+		}
+
+		ctx = context.WithValue(ctx, ctxRPushBody, rpush)
+
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// GetRPushBody retrieves set body from context.
+func GetRPushBody(ctx context.Context) *RPushRequestBody {
+	v, ok := ctx.Value(ctxRPushBody).(RPushRequestBody)
 	if !ok {
 		return nil
 	}
