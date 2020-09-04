@@ -1,11 +1,16 @@
 package qqcache
 
 import (
+	"errors"
 	"sync"
 	"time"
 )
 
 const defaultEvictionInterval = 60 * time.Second
+
+var (
+	ErrWrongTypeLPush = errors.New("wrong type of the value to push list value")
+)
 
 // Cache represents cache container.
 type Cache struct {
@@ -89,6 +94,42 @@ func (c *Cache) Keys() []string {
 	}
 
 	return keys
+}
+
+// RPush method adds element to the list in cache.
+// If key does not exist, a new key holding a list is created.
+// TTL param could be omitted if it's adding to the existing list.
+// If given TTL <=0 then the key will never be expired.
+func (c *Cache) RPush(key string, value interface{}, ttl time.Duration) error {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+
+	v, isExist := c.data[key]
+	if !isExist || v.isExpired() {
+		// Add new entity with list value
+		e := entity{
+			expiredAfter: validateExpiredAfter(ttl),
+		}
+		list := make([]interface{}, 0)
+		list = append(list, value)
+		e.value = list
+		c.data[key] = e
+
+		return nil
+	}
+
+	// Check if found value it's a slice
+	sl, ok := v.value.([]interface{})
+	if !ok {
+		return ErrWrongTypeLPush
+	}
+
+	// Add new item to the slice and update entity in cache
+	sl = append(sl, value)
+	v.value = sl
+	c.data[key] = v
+
+	return nil
 }
 
 func validateExpiredAfter(ttl time.Duration) int64 {
