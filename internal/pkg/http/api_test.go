@@ -514,3 +514,132 @@ func TestLindex_BadIndex(t *testing.T) {
 			map[string]string{"error": "index can't be negative"},
 		), w.Body.String())
 }
+
+// Tests for POST /v1/hset
+
+func TestHSet_OK(t *testing.T) {
+	// Check acceptance test flag
+	if !testutils.IsAccTestEnabled(t) {
+		return
+	}
+
+	// Init global app configuration
+	testutils.InitTestConfig()
+
+	// Initialize logger
+	logger, err := log.InitLogger(log.InitLoggerOpts{
+		Debug:     config.Config.Log.Debug,
+		UseStdout: config.Config.Log.UseStdout,
+		File:      config.Config.Log.File,
+	})
+	assert.NoError(t, err)
+
+	// Prepare backend
+	b := backend.New(logger)
+	defer b.Shutdown()
+	assert.NotEmpty(t, b)
+
+	rpushBody := &v1.HSetRequestBody{
+		Key:   testKey,
+		Value: map[string]interface{}{"some-key": "some-value"},
+		TTL:   10,
+	}
+	reqBody, err := json.Marshal(rpushBody)
+	assert.NoError(t, err)
+
+	// Setup handlers
+	router := InitAPIRouter(b)
+
+	// Test a request
+	w := httptest.NewRecorder()
+	r, err := http.NewRequest(http.MethodPost, "/v1/hset", bytes.NewReader(reqBody))
+	assert.NoError(t, err)
+	router.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestHSet_BadRequest(t *testing.T) {
+	// Check acceptance test flag
+	if !testutils.IsAccTestEnabled(t) {
+		return
+	}
+
+	// Init global app configuration
+	testutils.InitTestConfig()
+
+	// Initialize logger
+	logger, err := log.InitLogger(log.InitLoggerOpts{
+		Debug:     config.Config.Log.Debug,
+		UseStdout: config.Config.Log.UseStdout,
+		File:      config.Config.Log.File,
+	})
+	assert.NoError(t, err)
+
+	// Prepare backend
+	b := backend.New(logger)
+	defer b.Shutdown()
+	assert.NotEmpty(t, b)
+
+	rpushBody := &v1.HSetRequestBody{
+		Key: testKey,
+	}
+	reqBody, err := json.Marshal(rpushBody)
+	assert.NoError(t, err)
+
+	// Setup handlers
+	router := InitAPIRouter(b)
+
+	// Test a request
+	w := httptest.NewRecorder()
+	r, err := http.NewRequest(http.MethodPost, "/v1/hset", bytes.NewReader(reqBody))
+	assert.NoError(t, err)
+	router.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestHSet_AppendKeys(t *testing.T) {
+	// Check acceptance test flag
+	if !testutils.IsAccTestEnabled(t) {
+		return
+	}
+
+	// Init global app configuration
+	testutils.InitTestConfig()
+
+	// Initialize logger
+	logger, err := log.InitLogger(log.InitLoggerOpts{
+		Debug:     config.Config.Log.Debug,
+		UseStdout: config.Config.Log.UseStdout,
+		File:      config.Config.Log.File,
+	})
+	assert.NoError(t, err)
+
+	// Prepare backend
+	b := backend.New(logger)
+	defer b.Shutdown()
+	assert.NotEmpty(t, b)
+
+	assert.NoError(t, b.Cache.HSet(testKey, map[string]interface{}{"some-key-0": "some-value-0"}, 0))
+
+	rpushBody := &v1.HSetRequestBody{
+		Key:   testKey,
+		Value: map[string]interface{}{"some-key-1": "some-value-1"},
+	}
+	reqBody, err := json.Marshal(rpushBody)
+	assert.NoError(t, err)
+
+	// Setup handlers
+	router := InitAPIRouter(b)
+
+	// Test a request
+	w := httptest.NewRecorder()
+	r, err := http.NewRequest(http.MethodPost, "/v1/hset", bytes.NewReader(reqBody))
+	assert.NoError(t, err)
+	router.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+// Tests for GET /v1/hget/<key>/<hkey>

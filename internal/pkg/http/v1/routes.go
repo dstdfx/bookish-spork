@@ -44,7 +44,9 @@ func Routes(b *backend.Backend) http.Handler {
 		Get("/lindex/{key}/{index}", lindexHandler(b))
 
 	// POST /v1/hset
-	r.Post("/hset", hsetHandler(b))
+	r.
+		With(RequireHSetParams).
+		Post("/hset", hsetHandler(b))
 
 	// GET /v1/hget/<key>/<hkey>
 	r.
@@ -143,7 +145,17 @@ func lindexHandler(b *backend.Backend) func(w http.ResponseWriter, req *http.Req
 
 func hsetHandler(b *backend.Backend) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusNotImplemented)
+		// Get hset body from router's context
+		body := GetHSetBody(req.Context())
+
+		err := b.Cache.HSet(body.Key, body.Value, time.Duration(body.TTL)*time.Second)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			JSON(w, map[string]string{"error": err.Error()})
+
+			return
+		}
+		w.WriteHeader(http.StatusOK)
 	}
 }
 

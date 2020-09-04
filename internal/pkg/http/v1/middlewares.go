@@ -19,6 +19,7 @@ type ctxKey int
 const (
 	ctxKeyName ctxKey = iota
 	ctxSetBody
+	ctxHSetBody
 	ctxRPushBody
 	ctxIndex
 )
@@ -184,6 +185,55 @@ func RequireRPushParams(next http.Handler) http.Handler {
 // GetRPushBody retrieves set body from context.
 func GetRPushBody(ctx context.Context) *RPushRequestBody {
 	v, ok := ctx.Value(ctxRPushBody).(RPushRequestBody)
+	if !ok {
+		return nil
+	}
+
+	return &v
+}
+
+// HSetRequestBody represents hset request body.
+type HSetRequestBody struct {
+	Key   string                 `json:"key"`
+	Value map[string]interface{} `json:"value"`
+	TTL   int                    `json:"ttl"`
+}
+
+func (b *HSetRequestBody) IsValid() bool {
+	return b.Key != "" && b.Value != nil
+}
+
+// RequireHSetParams validates request body for 'hset' operation.
+func RequireHSetParams(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		hsetBody := HSetRequestBody{}
+		err := json.NewDecoder(r.Body).Decode(&hsetBody)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			JSON(w, map[string]string{"error": "hset body is invalid"})
+
+			return
+		}
+
+		// Validate set body
+		if !hsetBody.IsValid() {
+			w.WriteHeader(http.StatusBadRequest)
+			JSON(w, map[string]string{"error": "hset body is invalid"})
+
+			return
+		}
+
+		ctx = context.WithValue(ctx, ctxHSetBody, hsetBody)
+
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// GetHSetBody retrieves set body from context.
+func GetHSetBody(ctx context.Context) *HSetRequestBody {
+	v, ok := ctx.Value(ctxHSetBody).(HSetRequestBody)
 	if !ok {
 		return nil
 	}
