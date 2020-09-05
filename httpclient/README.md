@@ -4,6 +4,12 @@ This directory contains simple HTTP API client in Go for bookish-spork in-memory
 
 _NOTE! It's located in the same repository with the server just for the sake of simplicity._
 
+## Installation
+
+```bash
+go get github.com/dstdfx/bookish-spork/httpclient
+```
+
 Example usage:
 ```go
 package main
