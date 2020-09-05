@@ -138,6 +138,7 @@ curl -s -X GET "127.0.0.1:63100/v1/hget/some-hm/k3" | json_pp
 }
 ```
 
+You could also use [HTTP API client](httpclient) in Go to access the API.
 
 ## Service API
 
