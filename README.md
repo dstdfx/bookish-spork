@@ -220,5 +220,9 @@ make tests
 
 ## TODO
 
+* Auth
+* Scaling support
+* Load testing
+* Add ability to dump cache to disk
 * Code refactoring of `http` and `qqcache` packages
 * Add missing functions to work with `list` and `hash maps`
